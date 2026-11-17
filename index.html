@@ -461,10 +461,16 @@ function vArhiva() {
   C.innerHTML = `<div class="card mic muted">Master: <b>${esc(master.cale)}</b> · <a href="#/arhiva/alege">schimbă</a></div>
     <div class="card"><label>Dosarele, câte unul pe rând
       <textarea id="numere-arhiva" rows="4" placeholder="100/284/2026" autocapitalize="off" spellcheck="false">${esc(citeste("arhiva_numere", []).join("\n"))}</textarea></label>
+      <div id="respinse-arhiva"></div>
       <div class="butoane"><button class="btn lat" id="pregateste">🗜️ Pregătește arhiva</button></div></div>
     <div id="plan-arhiva"></div>`;
-  $("#numere-arhiva").oninput = e => scrie("arhiva_numere", e.target.value.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean));
-  $("#pregateste").onclick = () => pregatesteArhiva(master);
+  $("#numere-arhiva").oninput = e => scrie("arhiva_numere", e.target.value.split("\n").map(s => s.trim()).filter(Boolean));
+  $("#numere-arhiva").onchange = () => curataLista().catch(e => toast(e.message, 5000));
+  $("#pregateste").onclick = async () => {
+    try { if (!(await curataLista()).length) return toast("Scrie numărul cel puțin al unui dosar (ex. 100/284/2026)."); }
+    catch (e) { return toast(e.message, 5000); }
+    pregatesteArhiva(master);
+  };
   if (zipFacut) arataZip(zipFacut.fisier, zipFacut.erori, zipFacut.n);
 }
 async function vAlegeMaster(id) {
@@ -494,6 +500,16 @@ async function vAlegeMaster(id) {
     scrie("od_master", {id: folder.id, nume: folder.name, cale, parinte: parinte.id || ""});
     zipFacut = null; location.hash = "#/arhiva";
   };
+}
+async function curataLista() {
+  // Din fiecare rând rămâne doar numărul dosarului (1-5 cifre/3 cifre/anul 2010-2060); rândurile fără număr se arată
+  const t = $("#numere-arhiva"); if (!t) return [];
+  const r = await py("curata", {randuri: t.value.split("\n")});
+  t.value = r.numere.join("\n");
+  scrie("arhiva_numere", r.numere);
+  const R = $("#respinse-arhiva");
+  if (R) R.innerHTML = r.respinse.length ? `<div class="banda avertisment" style="white-space:pre-line;margin-top:8px">Fără număr de dosar (scoase din listă):\n${esc(r.respinse.join("\n"))}</div>` : "";
+  return r.numere;
 }
 async function pregatesteArhiva(master) {
   const texte = citeste("arhiva_numere", []);

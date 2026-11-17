@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Mercurius</title>
+<title>MercurioSine</title>
 <style>
 :root{
   --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0; --accent:#1e40af;
@@ -150,12 +150,12 @@ label.camp>span{display:block;font-size:13px;color:var(--muted);margin-bottom:4p
 <body>
 <header>
   <button id="inapoi" aria-label="Înapoi" hidden>←</button>
-  <h1 id="titlu">Mercurius</h1>
+  <h1 id="titlu">MercurioSine</h1>
   <button id="meniu" aria-label="Meniu">⋯</button>
 </header>
 <main id="continut"><div class="spinner"></div></main>
 <nav id="nav">
-  <div class="marca">⚖️ Mercurius</div>
+  <div class="marca">⚖️ MercurioSine</div>
   <a href="#/sesiuni" data-s="sesiuni"><span>📅</span>Sesiuni</a>
   <a href="#/cauta" data-s="cauta"><span>🔎</span>Caută</a>
   <a href="#/taxe" data-s="taxe"><span>🧮</span>Taxe</a>
@@ -170,6 +170,7 @@ const enc = encodeURIComponent;
 let STARI = [];
 let ARHIVE = [];
 const OFFLINE = true;   // Mercurius fără calculator (mercurius_offline): true, doar Taxe, calculul pe telefon
+const NUME_APP = "MercurioSine";   // fără calculator: „MercurioSine”, ca să se deosebească pe telefon
 
 // ---------- cererile ----------
 class Eroare extends Error { constructor(m, cod){ super(m); this.cod = cod; } }
@@ -269,7 +270,7 @@ async function apiOffline(cale, opt) {
 }
 function meniuOffline() {
   const od = tokenSalvat(), master = citeste("od_master", null);
-  foaie(`<h2>Mercurius fără calculator</h2>
+  foaie(`<h2>MercurioSine · fără Ius Machina deschis</h2>
   <div class="card mic">Calculul se face pe telefon, cu același cod ca în Ius Machina, și merge și fără internet după
   prima deschidere. Textele legii: ${textePachet ? "pachetul din " + esc(textePachet.replace("T", " ")) : "se încarcă la primul calcul"}.</div>
   <div class="card mic">OneDrive: ${od ? "conectat" : "neconectat"}${master ? " · Master: " + esc(master.cale) : ""}.
@@ -445,7 +446,7 @@ function vArhiva() {
   titlu("Arhivă ZIP");
   if (!tokenSalvat()) {
     C.innerHTML = `<div class="card"><h2>☁️ Conectează OneDrive</h2>
-      <p class="mic muted">Mercurius citește folderele dosarelor din OneDrive-ul tău, face arhiva pe telefon și o trimite
+      <p class="mic muted">MercurioSine citește folderele dosarelor din OneDrive-ul tău, face arhiva pe telefon și o trimite
       sau o pune înapoi în Master. Fișierele merg direct între telefon și OneDrive; nu trec prin alt server.</p>
       <button class="btn lat" id="conecteaza">Conectează OneDrive</button></div>`;
     $("#conecteaza").onclick = () => conecteazaOneDrive();
@@ -617,7 +618,7 @@ function arataZip(fisier, erori, n) {
 
 // ---------- cadrul ----------
 function titlu(t, inapoi=false) {
-  $("#titlu").textContent = t; document.title = t === "Mercurius" ? t : t + " · Mercurius";
+  $("#titlu").textContent = t; document.title = t === NUME_APP ? t : t + " · " + NUME_APP;
   $("#inapoi").hidden = !inapoi;
 }
 $("#inapoi").onclick = () => history.length > 1 ? history.back() : (location.hash = OFFLINE ? "#/taxe" : "#/sesiuni");

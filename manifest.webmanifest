@@ -1,8 +1,8 @@
 {
  "id": "./",
- "name": "Mercurius · fără calculator",
- "short_name": "Mercurius",
- "description": "Taxe și cauțiuni pe telefon, fără calculator.",
+ "name": "MercurioSine · Ius Machina fără calculator",
+ "short_name": "MercurioSine",
+ "description": "Taxe și cauțiuni și arhiva ZIP din OneDrive, pe telefon, fără Ius Machina deschis.",
  "lang": "ro",
  "start_url": "./#/taxe",
  "scope": "./",

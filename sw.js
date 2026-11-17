@@ -1,6 +1,6 @@
 "use strict";
 // Mercurius fără calculator: totul rămâne pe telefon (nu sunt date din dosare), deci merge și fără internet.
-const CACHE = "mercurius-offline-4b8c476e2395";
+const CACHE = "mercurius-offline-3833c53860c4";
 const PYODIDE = "https://cdn.jsdelivr.net/npm/pyodide@314.0.7/";
 const AICI = ["./", "index.html", "manifest.webmanifest", "py.json", "texte.json", "icon-192.png", "icon-512.png"];
 const PY = ["pyodide.js", "pyodide.asm.mjs", "pyodide.asm.wasm", "python_stdlib.zip", "pyodide-lock.json"].map(f => PYODIDE + f);

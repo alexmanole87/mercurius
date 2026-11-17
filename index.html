@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e293b">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mercurius</title>
+<style>
+:root{
+  --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0; --accent:#1e40af;
+  --accent-text:#ffffff; --bar:#1e293b; --bar-text:#f8fafc; --warn-bg:#fff7ed; --warn:#9a3412;
+  --ok-bg:#f0fdf4; --ok:#166534; --info-bg:#eff6ff; --info:#1e3a8a; --danger:#b91c1c; --chip:#e2e8f0;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1220; --card:#111a2e; --text:#e2e8f0; --muted:#94a3b8; --line:#1f2a44; --accent:#60a5fa;
+    --accent-text:#0b1220; --bar:#0f172a; --bar-text:#e2e8f0; --warn-bg:#2a1708; --warn:#fdba74;
+    --ok-bg:#0b2516; --ok:#86efac; --info-bg:#0c1a33; --info:#93c5fd; --danger:#f87171; --chip:#1f2a44;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bar);color:var(--bar-text);display:flex;align-items:center;
+  gap:8px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));min-height:52px}
+header h1{font-size:17px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header button{background:none;border:0;color:inherit;font-size:20px;padding:4px 8px;border-radius:8px}
+main{padding:12px 12px 24px;max-width:760px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:flex;background:var(--card);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:8px 0 10px;color:var(--muted);text-decoration:none;font-size:12px;position:relative}
+nav a span{display:block;font-size:21px;line-height:26px}
+nav a.activ{color:var(--accent);font-weight:600}
+nav .bulina{position:absolute;top:4px;left:calc(50% + 8px);background:var(--danger);color:#fff;border-radius:9px;
+  font-size:11px;min-width:18px;padding:0 5px;line-height:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.card h2{font-size:15px;margin:0 0 8px}
+.titlu-sectiune{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:18px 4px 6px}
+.muted{color:var(--muted)} .mic{font-size:13px}
+.rand{display:flex;align-items:center;gap:10px}
+.lista a.item,.item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;margin-bottom:6px;color:inherit;text-decoration:none}
+.item .crește,.creste{flex:1;min-width:0}
+.item b{font-weight:600}
+.trunchiat{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dosar{border-left:7px solid var(--c,#ffffff);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 28%,var(--card)) 0,var(--card) 70%)}
+.dosar .nr{font-weight:700;font-size:15px}
+.dosar .detalii{font-size:13px;color:var(--muted);margin-top:2px}
+.dosar .nota{font-size:13px;margin-top:3px;color:var(--text)}
+.bifa{width:26px;height:26px;border-radius:7px;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;
+  flex:none;font-size:15px;background:transparent;color:var(--accent-text)}
+.bifa.on{background:var(--accent);border-color:var(--accent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{border:1px solid var(--line);background:var(--chip);color:var(--text);border-radius:16px;padding:6px 11px;font-size:13px;
+  display:inline-flex;align-items:center;gap:6px}
+.chip .pata{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.25);background:var(--c)}
+.chip.on{outline:2px solid var(--accent);outline-offset:1px;font-weight:600}
+input[type=text],input[type=search],input[type=number],input[type=date],textarea,select{width:100%;padding:11px 12px;
+  border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;min-width:0}
+textarea{min-height:76px;resize:vertical}
+button.btn,a.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:11px 14px;
+  font:inherit;font-weight:600;background:var(--accent);color:var(--accent-text);text-decoration:none}
+.btn.sec{background:var(--chip);color:var(--text)}
+.btn.rosu{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.5}
+.butoane{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.butoane .lat{grid-column:1/-1}
+.banda{border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:14px}
+.banda.avertisment{background:var(--warn-bg);color:var(--warn)}
+.banda.ok{background:var(--ok-bg);color:var(--ok)}
+.banda.info{background:var(--info-bg);color:var(--info)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}
+dt{color:var(--muted)} dd{margin:0;word-break:break-word}
+details>summary{cursor:pointer;list-style:none;padding:10px 4px;font-weight:700;color:var(--muted);font-size:13px;text-transform:uppercase}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸ "} details[open]>summary::before{content:"▾ "}
+.eticheta{display:inline-block;font-size:11px;padding:2px 7px;border-radius:9px;background:var(--chip);color:var(--muted);margin-left:4px}
+.eticheta.rosu{background:var(--warn-bg);color:var(--warn)} .eticheta.verde{background:var(--ok-bg);color:var(--ok)}
+.gol{text-align:center;color:var(--muted);padding:30px 10px}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));background:#111827;color:#f9fafb;
+  padding:12px 14px;border-radius:10px;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:14px;white-space:pre-line}
+.foaie-fundal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:flex;align-items:flex-end}
+.foaie{background:var(--bg);width:100%;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 12px calc(16px + env(safe-area-inset-bottom))}
+.foaie h2{margin:4px 4px 12px;font-size:17px}
+label.optiune{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--card)}
+label.optiune>input{margin-top:3px;width:18px;height:18px;flex:none}
+label.optiune>div{flex:1;min-width:0}
+.progres{height:6px;background:var(--chip);border-radius:3px;overflow:hidden;margin-top:6px}
+.progres div{height:100%;background:var(--accent);width:0}
+.doc p{margin:0 0 .7em;line-height:1.5}
+.sugestii a{display:block;padding:10px 12px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+pre.text{white-space:pre-wrap;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--card);padding:10px;border-radius:10px;border:1px solid var(--line)}
+.spinner{width:28px;height:28px;border:3px solid var(--chip);border-top-color:var(--accent);border-radius:50%;animation:r 0.8s linear infinite;margin:40px auto}
+@keyframes r{to{transform:rotate(360deg)}}
+main a:not(.item):not(.btn):not(.chip):not(.creste){color:var(--accent)}
+.item.gri{opacity:.6}
+.suma{font-size:24px;font-weight:700;margin-bottom:4px}
+label.camp{display:block;margin-bottom:10px} label.camp:last-child{margin-bottom:0}
+label.camp>span{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.pasi div{margin-top:4px}
+
+/* Ecranele: telefon (de bază), telefon mic, tabletă, calculator, telefon culcat */
+.grila{display:grid;grid-template-columns:minmax(0,1fr);column-gap:10px}
+.grila>.gol{grid-column:1/-1}
+.doua-coloane{display:grid;grid-template-columns:minmax(0,1fr);column-gap:18px;align-items:start}
+.marca{display:none}
+@media (max-width:360px){
+  html,body{font-size:14px}
+  main{padding:10px 8px 20px}
+  .butoane{grid-template-columns:1fr} .butoane .lat{grid-column:auto}
+  button.btn,a.btn{padding:10px 11px}
+  nav a{font-size:11px}
+  .suma{font-size:21px}
+}
+@media (min-width:600px){
+  main{max-width:980px;padding:16px 20px 32px}
+  .grila{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .butoane{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  .foaie-fundal{align-items:center;justify-content:center;padding:24px}
+  .foaie{max-width:600px;border-radius:16px;max-height:86vh;padding-bottom:16px}
+  .toast{left:50%;right:auto;transform:translateX(-50%);width:calc(100% - 24px);max-width:480px}
+}
+@media (min-width:1000px){
+  body{padding-bottom:0;padding-left:220px}
+  nav{top:0;bottom:0;right:auto;width:220px;flex-direction:column;gap:4px;border-top:0;border-right:1px solid var(--line);
+    padding:0 10px 10px}
+  nav .marca{display:flex;align-items:center;gap:8px;min-height:52px;padding:10px 6px;margin-bottom:8px;font-weight:700;
+    font-size:17px;color:var(--text)}
+  nav a{flex:none;display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:10px;font-size:15px}
+  nav a span{display:inline;font-size:20px;line-height:24px}
+  nav a.activ{background:var(--chip)}
+  nav .bulina{position:static;margin-left:auto}
+  main{max-width:1280px;padding:20px 28px 40px}
+  .doua-coloane{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+  .toast{bottom:24px}
+}
+@media (max-height:500px) and (orientation:landscape) and (max-width:999px){
+  header{min-height:44px;padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
+  nav a{padding:4px 0 5px} nav a span{font-size:18px;line-height:21px}
+  body{padding-bottom:calc(50px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(58px + env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+<header>
+  <button id="inapoi" aria-label="Înapoi" hidden>←</button>
+  <h1 id="titlu">Mercurius</h1>
+  <button id="meniu" aria-label="Meniu">⋯</button>
+</header>
+<main id="continut"><div class="spinner"></div></main>
+<nav id="nav">
+  <div class="marca">⚖️ Mercurius</div>
+  <a href="#/sesiuni" data-s="sesiuni"><span>📅</span>Sesiuni</a>
+  <a href="#/cauta" data-s="cauta"><span>🔎</span>Caută</a>
+  <a href="#/taxe" data-s="taxe"><span>🧮</span>Taxe</a>
+  <a href="#/trimite" data-s="trimite"><span>📤</span>Trimite<b class="bulina" id="nr-cos" hidden></b></a>
+</nav>
+<script>
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const C = $("#continut");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const enc = encodeURIComponent;
+let STARI = [];
+let ARHIVE = [];
+const OFFLINE = true;   // Mercurius fără calculator (mercurius_offline): true, doar Taxe, calculul pe telefon
+
+// ---------- cererile ----------
+class Eroare extends Error { constructor(m, cod){ super(m); this.cod = cod; } }
+async function api(cale, opt={}) {
+  if (OFFLINE) return apiOffline(cale, opt);
+  let r;
+  try {
+    r = await fetch("/api/" + cale, {credentials:"same-origin", ...opt,
+      headers: {...(opt.body && !(opt.body instanceof Blob) ? {"Content-Type":"application/json"} : {}), "X-IM":"1", ...(opt.headers||{})}});
+  } catch (e) {
+    throw new Eroare("Ius Machina nu răspunde. Calculatorul e pornit, cu Ius Machina deschis, și telefonul e pe același Wi-Fi (sau conectat la Tailscale)?", 0);
+  }
+  let date = {};
+  try { date = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Eroare(date.eroare || ("Eroare " + r.status), r.status);
+  return date;
+}
+const post = (cale, corp) => api(cale, {method:"POST", body: JSON.stringify(corp)});
+
+function toast(text, ms=3200) {
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = text;
+  document.body.appendChild(t); setTimeout(() => t.remove(), ms);
+}
+function spinner(){ C.innerHTML = '<div class="spinner"></div>'; }
+function eroare(e) {
+  if (e.cod === 401) return ecranAsociere(e.message);
+  C.innerHTML = `<div class="card"><h2>⚠️ Nu s-a putut încărca</h2><p>${esc(e.message)}</p>
+    <button class="btn" id="reincearca">Reîncearcă</button></div>`;
+  $("#reincearca").onclick = () => router();
+}
+function ecranAsociere(mesaj) {
+  titlu("Mercurius");
+  C.innerHTML = `<div class="card"><h2>📱 Telefonul nu e asociat</h2>
+    <p>${esc(mesaj)}</p>
+    <ol class="mic muted"><li>Pe calculator, în Ius Machina: <b>Unelte → 📱 Mercurius</b>.</li>
+    <li>Scanează codul QR cu camera telefonului (același Wi-Fi sau Tailscale) sau lipește mai jos linkul ori codul copiat de acolo.</li>
+    <li>În Chrome: <b>⋮ → ${window.isSecureContext ? "Instalează aplicația" : "Adaugă pe ecranul principal"}</b>.</li></ol>
+    <form id="f-cod" class="rand"><input type="text" id="cod-asociere" placeholder="Linkul sau codul de asociere" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn">Asociază</button></form></div>`;
+  $("#f-cod").onsubmit = ev => {
+    ev.preventDefault();
+    const cod = codDinText($("#cod-asociere").value);
+    if (!cod) return toast("Lipește linkul sau codul din Ius Machina.");
+    location.href = "/asociere?cod=" + encodeURIComponent(cod);
+  };
+}
+function codDinText(text) {
+  text = (text || "").trim();
+  const m = text.match(/[?&]cod=([^&#\s]+)/);
+  return m ? decodeURIComponent(m[1]) : text.replace(/\s+/g, "");
+}
+
+// ---------- coșul pentru Trimite ----------
+function cos() { try { return JSON.parse(localStorage.getItem("cos") || "[]"); } catch(e) { return []; } }
+function scrieCos(l) { try { localStorage.setItem("cos", JSON.stringify(l)); } catch(e) {} bulinaCos(); }
+function inCos(nr) { return cos().includes(nr); }
+function comutaCos(nr) { const l = cos(); const i = l.indexOf(nr); if (i >= 0) l.splice(i, 1); else l.push(nr); scrieCos(l); return i < 0; }
+function bulinaCos() { const n = cos().length, b = $("#nr-cos"); b.hidden = !n; b.textContent = n; }
+
+
+// ---------- Mercurius fără calculator: Python (Pyodide) pe telefon ----------
+const PYODIDE = "https://cdn.jsdelivr.net/npm/pyodide@314.0.7/";
+let pyGata = null, textePachet = "";
+function incarcaScript(src) {
+  return new Promise((ok, nu) => { const s = document.createElement("script"); s.src = src; s.onload = ok;
+    s.onerror = () => nu(new Error("nu s-a încărcat " + src)); document.head.appendChild(s); });
+}
+function pornestePython() {
+  if (!pyGata) {
+    const lent = setTimeout(() => toast("Se pregătește calculatorul pe telefon (prima dată durează mai mult)…", 6000), 1500);
+    pyGata = (async () => {
+      try {
+        if (!window.loadPyodide) await incarcaScript(PYODIDE + "pyodide.js");
+        const [py, surse, texte] = await Promise.all([loadPyodide({indexURL: PYODIDE}),
+          fetch("py.json").then(r => r.json()), fetch("texte.json").then(r => r.text())]);
+        py.FS.mkdirTree("/mercurius");
+        for (const [nume, sursa] of Object.entries(surse.fisiere)) py.FS.writeFile("/mercurius/" + nume, sursa);
+        py.runPython("import sys; sys.path.insert(0, '/mercurius')");
+        const m = py.pyimport("mercurius_telefon");
+        textePachet = JSON.parse(m.porneste(texte)).generat_la;
+        return m;
+      } finally { clearTimeout(lent); }
+    })();
+    pyGata.catch(() => { pyGata = null; });
+  }
+  return pyGata;
+}
+async function apiOffline(cale, opt) {
+  let m;
+  try { m = await pornestePython(); }
+  catch (e) { throw new Eroare("Calculatorul nu a putut porni pe telefon (" + e.message + "). La prima deschidere e nevoie de internet.", 0); }
+  const [ruta, qs] = cale.split("?");
+  const q = Object.fromEntries(new URLSearchParams(qs || ""));
+  const r = JSON.parse(m.cere((opt.method || "GET").toUpperCase(), ruta, JSON.stringify(q), opt.body || "{}"));
+  if (r.eroare !== undefined && r.ok === undefined) throw new Eroare(r.eroare, r.cod);
+  return r.ok;
+}
+function meniuOffline() {
+  foaie(`<h2>Mercurius fără calculator</h2>
+  <div class="card mic">Calculul se face pe telefon, cu același cod ca în Ius Machina, și merge și fără internet după
+  prima deschidere. Textele legii: ${textePachet ? "pachetul din " + esc(textePachet.replace("T", " ")) : "se încarcă la primul calcul"}.</div>
+  <div class="butoane"><button class="btn sec lat" data-a="reincarca">↻ Reîncarcă</button></div>`, (a, f) => {
+    if (a === "reincarca") { f.inchide(); location.reload(); }
+  });
+}
+function pornesteOffline() {
+  document.querySelectorAll("nav a").forEach(a => { a.hidden = a.dataset.s !== "taxe"; });
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  router();
+  pornestePython().catch(() => {});
+}
+
+// ---------- cadrul ----------
+function titlu(t, inapoi=false) {
+  $("#titlu").textContent = t; document.title = t === "Mercurius" ? t : t + " · Mercurius";
+  $("#inapoi").hidden = !inapoi;
+}
+$("#inapoi").onclick = () => history.length > 1 ? history.back() : (location.hash = OFFLINE ? "#/taxe" : "#/sesiuni");
+$("#meniu").onclick = () => OFFLINE ? meniuOffline() : foaie(`<h2>Mercurius · Ius Machina pe telefon</h2>
+  <div class="card mic">Datele vin direct de la Ius Machina de pe calculator, ${location.protocol === "https:"
+    ? "prin Tailscale (criptat)" : "prin Wi-Fi (necriptat: doar pe rețele de încredere)"}.
+  Ce schimbi aici (starea, nota, trimiterile) se face pe calculator.</div>
+  <div class="butoane"><button class="btn sec lat" data-a="reincarca">↻ Reîncarcă</button>
+  <button class="btn rosu lat" data-a="iesire">Deconectează acest telefon</button></div>`, async (a, f) => {
+    if (a === "reincarca") { f.inchide(); router(); }
+    if (a === "iesire" && confirm("Telefonul nu va mai avea acces până la o nouă scanare a codului QR. Continui?")) {
+      try { await post("iesire", {}); } catch (e) {}
+      f.inchide(); ecranAsociere("Telefonul a fost deconectat.");
+    }
+  });
+
+function foaie(htmlInterior, laClick) {
+  const fundal = document.createElement("div"); fundal.className = "foaie-fundal";
+  fundal.innerHTML = `<div class="foaie">${htmlInterior}</div>`;
+  const f = {el: fundal.firstChild, inchide: () => fundal.remove()};
+  fundal.addEventListener("click", e => {
+    if (e.target === fundal) return f.inchide();
+    const b = e.target.closest("[data-a]"); if (b && laClick) laClick(b.dataset.a, f, b);
+  });
+  document.body.appendChild(fundal);
+  return f;
+}
+
+function router() {
+  const h = location.hash.replace(/^#\/?/, "") || (OFFLINE ? "taxe" : "sesiuni");
+  const [sectiune, ...rest] = h.split("/");
+  const arg = rest.map(decodeURIComponent);
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("activ",
+    a.dataset.s === sectiune || (a.dataset.s === "sesiuni" && sectiune === "sesiune")));
+  window.scrollTo(0, 0);
+  C.onclick = null;
+  document.querySelectorAll(".foaie-fundal").forEach(x => x.remove());
+  bulinaCos();
+  const vederi = OFFLINE ? {taxe: vTaxeRuta} : {sesiuni: vSesiuni, sesiune: vSesiune, cauta: vCauta, dosar: vDosar,
+    doc: vDoc, trimite: vTrimite, taxe: vTaxeRuta};
+  (vederi[sectiune] || (OFFLINE ? vTaxeRuta : vSesiuni))(...arg);
+}
+
+// Copierea: clipboard-ul modern cere HTTPS (Tailscale); pe Wi-Fi (HTTP) merge varianta veche
+async function copiaza(text) {
+  try { await navigator.clipboard.writeText(text); toast("Copiat."); return; } catch (e) {}
+  const t = document.createElement("textarea");
+  t.value = text; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;top:0;opacity:0";
+  document.body.appendChild(t); t.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+  t.remove(); toast(ok ? "Copiat." : "Nu s-a putut copia pe acest telefon.");
+}
+function citeste(cheie, implicit) { try { const v = JSON.parse(localStorage.getItem(cheie)); return v ?? implicit; } catch (e) { return implicit; } }
+function scrie(cheie, v) { try { localStorage.setItem(cheie, JSON.stringify(v)); } catch (e) {} }
+const simplu = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+addEventListener("hashchange", router);
+
+// ---------- Sesiuni ----------
+async function vSesiuni() {
+  titlu("Sesiuni"); spinner();
+  let d; try { d = await api("sesiuni"); } catch (e) { return eroare(e); }
+  let h = "";
+  if (d.deschisa) {
+    h += `<div class="titlu-sectiune">Deschisă acum în Ius Machina</div>
+      <a class="item" href="#/sesiune/deschisa" style="border-color:var(--accent)">
+      <span style="font-size:22px">🟢</span><div class="creste"><b>${esc(d.deschisa.nume)}</b>
+      <div class="mic muted">${esc(d.deschisa.zi_text || "fără zi")} · ${d.deschisa.dosare} dosare</div></div><span>›</span></a>`;
+  }
+  if (!d.luni.length) h += `<div class="gol">Nu s-a găsit nicio sesiune .sesh în folderele din config.</div>`;
+  d.luni.forEach((l, i) => {
+    h += `<details ${i < 2 ? "open" : ""}><summary>${esc(l.luna)} · ${l.sesiuni.length}</summary><div class="grila">`;
+    for (const s of l.sesiuni) {
+      h += `<a class="item" href="#/sesiune/${s.id}"><div class="creste"><b>${esc(s.zi_text || s.nume)}</b>
+        <div class="mic muted trunchiat">${esc([s.folder, s.nume].filter(Boolean).join(" \\ "))} · ${s.dosare} dosare</div></div><span>›</span></a>`;
+    }
+    h += `</div></details>`;
+  });
+  C.innerHTML = h;
+}
+
+let filtruSesiune = {culoare: "", text: ""};
+async function vSesiune(id) {
+  titlu("Sesiune", true); spinner();
+  let d; try { d = await api("sesiune?id=" + enc(id)); } catch (e) { return eroare(e); }
+  titlu((d.zi_text ? d.zi_text + " · " : "") + d.nume, true);
+  filtruSesiune = {culoare: "", text: ""};
+  const culori = {};
+  d.dosare.forEach(x => { const k = x.culoare.toLowerCase(); (culori[k] = culori[k] || {n:0, et:x.stare || (k === "#ffffff" ? "Fără stare" : k)}).n++; });
+  let h = `<input type="search" id="filtru" placeholder="Filtrează: număr, parte, obiect, notă…">
+    <div class="chips" id="chips"><button class="chip on" data-c="">Toate · ${d.dosare.length}</button>`;
+  for (const [c, v] of Object.entries(culori)) h += `<button class="chip" data-c="${esc(c)}" style="--c:${esc(c)}"><i class="pata"></i>${esc(v.et)} · ${v.n}</button>`;
+  h += `</div><div id="randuri" class="grila"></div>
+    <div class="butoane" style="margin-top:10px"><button class="btn sec lat" id="toate-cos">📤 Pune dosarele afișate în Trimite</button></div>`;
+  C.innerHTML = h;
+  const deseneaza = () => {
+    const t = filtruSesiune.text.toLowerCase();
+    const vizibile = d.dosare.filter(x => (!filtruSesiune.culoare || x.culoare.toLowerCase() === filtruSesiune.culoare) &&
+      (!t || [x.text, x.obiect, x.nota, x.complet].join(" ").toLowerCase().includes(t)));
+    $("#randuri").innerHTML = vizibile.map(randDosar).join("") || `<div class="gol">Niciun dosar.</div>`;
+    $("#toate-cos").onclick = () => { const l = cos(); vizibile.forEach(x => l.includes(x.nr) || l.push(x.nr)); scrieCos(l);
+      toast(`${vizibile.length} dosare în Trimite`); deseneaza(); };
+  };
+  $("#filtru").oninput = e => { filtruSesiune.text = e.target.value; deseneaza(); };
+  $("#chips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return;
+    filtruSesiune.culoare = b.dataset.c; document.querySelectorAll("#chips .chip").forEach(x => x.classList.toggle("on", x === b)); deseneaza(); };
+  $("#randuri").onclick = e => { const b = e.target.closest(".bifa"); if (!b) return; e.preventDefault();
+    b.classList.toggle("on", comutaCos(b.dataset.nr)); b.textContent = b.classList.contains("on") ? "✓" : ""; };
+  deseneaza();
+}
+function randDosar(x) {
+  const det = [x.stare, x.complet, x.ora].filter(Boolean).join(" · ");
+  const on = inCos(x.nr);
+  return `<a class="item dosar" style="--c:${esc(x.culoare)}" href="#/dosar/${enc(x.nr)}">
+    <div class="creste"><div class="nr">${x.marcat ? "⭐ " : ""}${esc(x.text)}${x.iem ? '<span class="eticheta">IEM</span>' : ""}</div>
+    ${det ? `<div class="detalii">${esc(det)}</div>` : ""}
+    ${x.obiect ? `<div class="detalii trunchiat">${esc(x.obiect)}</div>` : ""}
+    ${x.nota ? `<div class="nota">📝 ${esc(x.nota)}</div>` : ""}</div>
+    <button class="bifa ${on ? "on" : ""}" data-nr="${esc(x.nr)}" aria-label="Pune în Trimite">${on ? "✓" : ""}</button></a>`;
+}
+
+// ---------- Caută ----------
+async function vCauta() {
+  titlu("Caută dosar");
+  C.innerHTML = `<form id="f"><input type="search" id="nr" inputmode="text" autocomplete="off"
+    placeholder="Număr dosar (ex. 1095/284/2026 sau 1095)" autofocus></form>
+    <div class="card sugestii" id="sug" hidden></div>
+    <p class="mic muted">Ca în Ius Machina (Ctrl+Shift+F): fișa, părțile, termenele din Case Manager, sesiunile și listele în care apare.</p>`;
+  let temp;
+  $("#nr").oninput = e => { clearTimeout(temp); const v = e.target.value.trim();
+    if (v.length < 2) { $("#sug").hidden = true; return; }
+    temp = setTimeout(async () => { try { const r = await api("potriviri?q=" + enc(v));
+      $("#sug").hidden = !r.numere.length;
+      $("#sug").innerHTML = r.numere.map(n => `<a href="#/dosar/${enc(n)}">${esc(n)}</a>`).join(""); } catch (e) {} }, 250); };
+  $("#f").onsubmit = async e => { e.preventDefault(); const v = $("#nr").value.trim(); if (!v) return;
+    try { const r = await api("potriviri?q=" + enc(v)); location.hash = "#/dosar/" + enc(r.numere.length === 1 ? r.numere[0] : v); }
+    catch (er) { location.hash = "#/dosar/" + enc(v); } };
+}
+
+// ---------- Dosarul ----------
+async function vDosar(nr) {
+  titlu(nr, true); spinner();
+  let d; try { d = await api("cauta?nr=" + enc(nr)); } catch (e) { return eroare(e); }
+  titlu(d.nr, true);
+  if (!d.gasit) { C.innerHTML = `<div class="gol">Dosarul ${esc(d.nr)} nu apare în fișe, sesiuni, liste sau în Master.</div>`; return; }
+  const on = inCos(d.nr);
+  let h = `<div class="doua-coloane"><div>
+    <div class="card dosar" style="--c:${esc(d.culoare)}">
+    <div class="nr" style="font-size:18px">${esc(d.nr)}</div>
+    <div class="detalii">${esc([d.stare || "Fără stare", d.complet].filter(Boolean).join(" · "))}</div></div>
+    <div class="banda ${esc(d.verdict.nivel)}">${esc(d.verdict.text)}</div>
+    <div class="card"><dl>
+      <dt>Următor</dt><dd>${d.urmator ? `<b>${esc(d.urmator.zi)}</b> <span class="mic muted">${esc(d.urmator.sursa)}</span>` : "—"}</dd>
+      <dt>Obiect</dt><dd>${esc(d.obiect || "—")}</dd>
+      ${d.parti.map(p => `<dt>${esc(p.rol)}</dt><dd>${esc(p.nume.join(", "))}</dd>`).join("")}
+      ${d.conexat_la ? `<dt>Conexat la</dt><dd><a href="#/dosar/${enc(d.conexat_la)}">${esc(d.conexat_la)}</a></dd>` : ""}
+      <dt>Folder</dt><dd>${d.folder ? esc(d.folder) + (d.in_arhiva ? ' <span class="eticheta">Arhivă</span>' : "") : "—"}</dd>
+    </dl>${d.inrudite.length ? `<div class="chips">${d.inrudite.map(n => `<a class="chip" href="#/dosar/${enc(n)}">${esc(n)}</a>`).join("")}</div>` : ""}</div>
+
+    <div class="titlu-sectiune">Starea</div>
+    <div class="chips" id="stari">${STARI.map(s => `<button class="chip ${s.culoare.toLowerCase() === d.culoare.toLowerCase() ? "on" : ""}"
+      data-c="${esc(s.culoare)}" style="--c:${esc(s.culoare)}"><i class="pata"></i>${esc(s.eticheta)}</button>`).join("")}</div>
+
+    <div class="titlu-sectiune">Nota judecătorului</div>
+    <textarea id="nota" maxlength="2000" placeholder="Nota de pe rândul dosarului">${esc(d.nota)}</textarea>
+    <div style="margin-top:6px"><button class="btn" id="salveaza-nota" disabled>Salvează nota</button></div>
+
+    <div class="titlu-sectiune">Trimite</div>
+    <div class="butoane">
+      <button class="btn" id="grefier">📦 La grefier</button>
+      <button class="btn" id="zip">🗜️ Arhivă ZIP</button>
+      <button class="btn sec" id="incarca">📲 Fișiere pe PC</button>
+      <button class="btn sec" id="cos">${on ? "✓ În Trimite" : "➕ În Trimite"}</button>
+    </div>
+    </div><div>
+
+    <div class="titlu-sectiune">Documente</div><div id="docs"><div class="spinner"></div></div>
+
+    <details ${d.termene.length ? "open" : ""}><summary>Termene în Case Manager · ${d.termene.length}</summary>
+      ${d.termene.map(t => `<div class="item"><div class="creste">${esc(t.text)}</div>${t.pronuntare ? '<span class="eticheta">pronunțare</span>' : ""}</div>`).join("") || '<div class="muted mic">—</div>'}</details>
+    <details><summary>Sesiuni · ${d.sesiuni.length + d.sesiuni_fara_zi.length}</summary>
+      ${d.sesiuni.map(s => s.fisiere.map(f => `<a class="item" href="#/sesiune/${f.id}"><div class="creste"><b>${esc(s.zi)}</b>
+        <div class="mic muted trunchiat">${esc(f.nume)}${s.complet ? " · " + esc(s.complet) : ""}</div></div>
+        <span class="eticheta ${s.in_cm ? "verde" : "rosu"}">${s.in_cm ? "în CM" : "lipsește din CM"}</span></a>`).join("")).join("")}
+      ${d.sesiuni_fara_zi.map(f => `<a class="item" href="#/sesiune/${f.id}"><div class="creste">fără zi · ${esc(f.nume)}</div></a>`).join("")}</details>
+    <details><summary>Liste de ședință · ${d.liste.length}</summary>
+      ${d.liste.map(l => `<div class="item"><div class="creste"><b>${esc(l.zi)}</b> <span class="mic muted">${esc(l.fisier)}</span></div>
+        <span class="eticheta ${l.in_cm ? "verde" : "rosu"}">${l.in_cm ? "în CM" : "lipsește din CM"}</span></div>`).join("") || '<div class="muted mic">—</div>'}</details>
+    <details><summary>Text pentru copiat</summary><pre class="text">${esc(d.text)}</pre>
+      <button class="btn sec" id="copiaza">Copiază</button></details>
+    </div></div>`;
+  C.innerHTML = h;
+
+  $("#stari").onclick = async e => { const b = e.target.closest(".chip"); if (!b) return;
+    try { const r = await post("stare", {nr: d.nr, culoare: b.dataset.c});
+      document.querySelectorAll("#stari .chip").forEach(x => x.classList.toggle("on", x === b));
+      $(".card.dosar").style.setProperty("--c", r.culoare);
+      $(".card.dosar .detalii").textContent = [r.stare || "Fără stare", d.complet].filter(Boolean).join(" · ");
+      toast("Starea a fost schimbată în Ius Machina."); } catch (er) { toast(er.message); } };
+  $("#nota").oninput = () => $("#salveaza-nota").disabled = false;
+  $("#salveaza-nota").onclick = async () => { try { await post("nota", {nr: d.nr, nota: $("#nota").value});
+    $("#salveaza-nota").disabled = true; toast("Nota a fost salvată."); } catch (er) { toast(er.message); } };
+  $("#grefier").onclick = () => grefier([d.nr]);
+  $("#zip").onclick = () => arhiva([d.nr]);
+  $("#incarca").onclick = () => incarca(d.nr, docsSub, () => documente(d.nr, docsSub));
+  $("#cos").onclick = e => { e.target.textContent = comutaCos(d.nr) ? "✓ În Trimite" : "➕ În Trimite"; };
+  $("#copiaza").onclick = () => copiaza(d.text);
+  documente(d.nr, "");
+}
+
+let docsSub = "";
+async function documente(nr, sub) {
+  docsSub = sub;
+  const box = $("#docs"); if (!box) return;
+  let d; try { d = await api(`documente?nr=${enc(nr)}&sub=${enc(sub)}`); }
+  catch (e) { box.innerHTML = `<div class="muted mic">${esc(e.message)}</div>`; return; }
+  let h = "";
+  if (d.sub) { const sus = d.sub.split("/").slice(0, -1).join("/");
+    h += `<a class="item" href="#" data-sub="${esc(sus)}"><span>⬆️</span><div class="creste">${esc(d.folder)} / ${esc(d.sub)}</div></a>`; }
+  for (const x of d.intrari) {
+    const rel = (d.sub ? d.sub + "/" : "") + x.nume;
+    if (x.dosar) { h += `<a class="item" href="#" data-sub="${esc(rel)}"><span>📁</span><div class="creste trunchiat">${esc(x.nume)}</div><span>›</span></a>`; continue; }
+    const ext = x.nume.split(".").pop().toLowerCase();
+    const ic = {pdf:"📕", docx:"📘", doc:"📘", jpg:"🖼️", jpeg:"🖼️", png:"🖼️", zip:"🗜️", txt:"📄"}[ext] || "📄";
+    const url = `/api/fisier?nr=${enc(nr)}&p=${enc(rel)}`;
+    const deschide = ext === "docx" ? `#/doc/${enc(nr)}/${enc(rel)}` : url;
+    h += `<div class="item"><span>${ic}</span><a class="creste" style="color:inherit;text-decoration:none;min-width:0" href="${deschide}" ${ext === "docx" ? "" : 'target="_blank"'}>
+      <div class="trunchiat"><b>${esc(x.nume)}</b></div><div class="mic muted">${marime(x.marime)} · ${data(x.modificat)}</div></a>
+      <a class="btn sec" style="padding:8px 10px" href="${url}&dl=1" aria-label="Descarcă">⬇</a></div>`;
+  }
+  box.innerHTML = h || `<div class="muted mic">Folderul e gol.</div>`;
+  box.onclick = e => { const a = e.target.closest("[data-sub]"); if (!a) return; e.preventDefault(); documente(nr, a.dataset.sub); };
+}
+const marime = b => b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+const data = t => new Date(t * 1000).toLocaleString("ro-RO", {day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"});
+
+async function vDoc(nr, rel) {
+  titlu(rel.split("/").pop(), true); spinner();
+  let d; try { d = await api(`docx?nr=${enc(nr)}&p=${enc(rel)}`); } catch (e) { return eroare(e); }
+  const url = `/api/fisier?nr=${enc(nr)}&p=${enc(rel)}`;
+  C.innerHTML = `<div class="butoane" style="margin-bottom:10px"><a class="btn sec lat" href="${url}&dl=1">⬇ Descarcă (Word / Docs)</a></div>
+    <div class="card doc">${d.paragrafe.map(p => p.trim() ? `<p>${esc(p)}</p>` : "").join("")}</div>`;
+}
+
+// ---------- Trimite ----------
+function vTrimite() {
+  titlu("Trimite");
+  const l = cos();
+  let h = `<p class="mic muted">Dosarele adunate din sesiuni sau din pagina dosarului. Acțiunile se fac pe calculator,
+    ca din meniul 📤 Trimite al listei.</p>
+    <form id="adauga" class="rand" style="margin-bottom:10px"><input type="text" id="nr-nou" placeholder="Adaugă un număr de dosar">
+    <button class="btn">➕</button></form>`;
+  h += l.length ? `<div class="grila">` + l.map(nr => `<div class="item"><a class="creste" style="color:inherit;text-decoration:none" href="#/dosar/${enc(nr)}"><b>${esc(nr)}</b></a>
+    <button class="btn sec" style="padding:6px 10px" data-scoate="${esc(nr)}">✕</button></div>`).join("") + `</div>`
+    : `<div class="gol">Niciun dosar. Bifează dosare într-o sesiune sau adaugă un număr.</div>`;
+  h += `<div class="butoane" style="margin-top:12px">
+    <button class="btn" id="t-grefier" ${l.length ? "" : "disabled"}>📦 La grefier</button>
+    <button class="btn" id="t-zip" ${l.length ? "" : "disabled"}>🗜️ Arhivă ZIP</button>
+    <button class="btn sec lat" id="t-incarca" ${l.length ? "" : "disabled"}>📲 Fișiere de pe telefon pe PC</button>
+    <button class="btn sec lat" id="t-gol" ${l.length ? "" : "disabled"}>Golește lista</button></div>`;
+  if (ARHIVE.length) h += `<div class="titlu-sectiune">Arhive făcute acum</div>` + ARHIVE.map(a =>
+    `<div class="item"><span>🗜️</span><div class="creste"><b class="trunchiat">${esc(a.nume)}</b><div class="mic muted trunchiat">${esc(a.cale)}</div></div>
+     <a class="btn sec" style="padding:8px 10px" href="/api/zip?id=${a.id}">⬇</a></div>`).join("");
+  C.innerHTML = h;
+  C.onclick = e => { const b = e.target.closest("[data-scoate]"); if (!b) return; comutaCos(b.dataset.scoate); vTrimite(); };
+  $("#adauga").onsubmit = async e => { e.preventDefault(); const v = $("#nr-nou").value.trim(); if (!v) return;
+    let nr = v; try { const r = await api("potriviri?q=" + enc(v)); if (r.numere.length === 1) nr = r.numere[0];
+      else if (r.numere.length > 1) { toast("Mai multe potriviri: " + r.numere.slice(0, 5).join(", ")); return; } } catch (er) {}
+    if (!inCos(nr)) comutaCos(nr); vTrimite(); };
+  $("#t-grefier").onclick = () => grefier(cos());
+  $("#t-zip").onclick = () => arhiva(cos());
+  $("#t-incarca").onclick = () => alegeDosarPentruIncarcare(cos());
+  $("#t-gol").onclick = () => { if (confirm("Golești lista?")) { scrieCos([]); vTrimite(); } };
+}
+function alegeDosarPentruIncarcare(numere) {
+  if (numere.length === 1) return incarca(numere[0], "");
+  foaie(`<h2>În folderul cărui dosar?</h2>${numere.map(n => `<button class="item btn sec" style="width:100%" data-a="${esc(n)}">${esc(n)}</button>`).join("")}`,
+    (a, f) => { f.inchide(); incarca(a, ""); });
+}
+
+// Fișiere de pe telefon → folderul dosarului de pe calculator
+function incarca(nr, sub, dupa) {
+  const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true;
+  inp.onchange = async () => {
+    const fisiere = [...inp.files]; if (!fisiere.length) return;
+    const f = foaie(`<h2>Trimit în ${esc(nr)}${sub ? " / " + esc(sub) : ""}</h2><div id="incarcari"></div>`);
+    const box = $("#incarcari", f.el); let ok = 0;
+    for (const fis of fisiere) {
+      const rand = document.createElement("div"); rand.className = "card mic";
+      rand.innerHTML = `${esc(fis.name)} · ${marime(fis.size)}<div class="progres"><div></div></div><div class="stare muted"></div>`;
+      box.appendChild(rand);
+      try {
+        const r = await trimiteFisier(nr, sub, fis, p => $(".progres div", rand).style.width = (p * 100) + "%");
+        $(".stare", rand).textContent = "✓ Salvat ca " + r.nume; ok++;
+      } catch (e) { $(".stare", rand).textContent = "✕ " + e.message; $(".stare", rand).style.color = "var(--danger)"; }
+    }
+    const b = document.createElement("button"); b.className = "btn lat"; b.textContent = `Gata (${ok}/${fisiere.length})`;
+    b.onclick = () => { f.inchide(); dupa && dupa(); }; box.appendChild(b);
+  };
+  inp.click();
+}
+function trimiteFisier(nr, sub, fis, progres) {
+  return new Promise((ok, nu) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", `/api/incarca?nr=${enc(nr)}&sub=${enc(sub || "")}&nume=${enc(fis.name)}`);
+    x.setRequestHeader("X-IM", "1");
+    x.upload.onprogress = e => e.lengthComputable && progres(e.loaded / e.total);
+    x.onload = () => { let d = {}; try { d = JSON.parse(x.responseText); } catch (e) {}
+      x.status === 200 ? ok(d) : nu(new Eroare(d.eroare || "Eroare " + x.status, x.status)); };
+    x.onerror = () => nu(new Eroare("Transferul a eșuat (Wi-Fi?).", 0));
+    x.send(fis);
+  });
+}
+
+// La grefier: aceleași întrebări ca pe PC, pe rând pentru fiecare dosar
+async function grefier(numere) {
+  const rezultate = [];
+  for (const nr of numere) {
+    let plan;
+    try { plan = await api("grefier?nr=" + enc(nr)); }
+    catch (e) { if (e.cod === 401) return eroare(e); rezultate.push(`✕ ${nr}: ${e.message}`); continue; }
+    const r = await intrebariGrefier(plan, numere.length > 1 ? `${numere.indexOf(nr) + 1} / ${numere.length}` : "");
+    if (r === "opreste") break;
+    if (r) rezultate.push(r);
+  }
+  if (rezultate.length) foaie(`<h2>Trimite la grefier</h2><div class="card mic" style="white-space:pre-line">${esc(rezultate.join("\n"))}</div>
+    <button class="btn lat" data-a="ok" style="width:100%">OK</button>`, (a, f) => f.inchide());
+}
+function intrebariGrefier(plan, pas) {
+  return new Promise(gata => {
+    const g0 = plan.grupuri[0];
+    const html = `<h2>📦 ${esc(plan.nr)} la grefier ${pas ? `<span class="mic muted">${pas}</span>` : ""}</h2>
+      ${plan.in_arhiva ? '<div class="banda info">Folderul dosarului e în Arhivă.</div>' : ""}
+      ${plan.grupuri.length > 1 ? `<div class="titlu-sectiune">Ce set se trimite?</div>` + plan.grupuri.map((g, i) =>
+        `<label class="optiune"><input type="radio" name="grup" value="${esc(g.cheie)}" ${i ? "" : "checked"}>
+        <div><b>${g.sufix ? `Cu sufixul „${esc(g.sufix)}”` : "Fără sufix"}</b> → folder „${esc(g.destinatie)}”</div></label>`).join("") : ""}
+      <div class="titlu-sectiune">Fișierele</div><div id="fisiere"></div>
+      <div id="dest"></div>
+      <div class="butoane" style="margin-top:12px"><button class="btn sec" data-a="anuleaza">Anulează</button>
+      <button class="btn" data-a="trimite">Trimite</button></div>`;
+    const f = foaie(html, async (a, f) => {
+      if (a === "anuleaza") { f.inchide(); return gata(pas ? null : null); }
+      if (a !== "trimite") return;
+      const g = grupAles();
+      const fisiere = [...f.el.querySelectorAll("#fisiere input:checked")].map(x => x.value);
+      const corp = {nr: plan.nr, grup: g.cheie, fisiere};
+      if (g.destinatie_exista) {
+        corp.mod = (f.el.querySelector("input[name=mod]:checked") || {}).value;
+        if (corp.mod === "rescriere") {
+          corp.folder = (f.el.querySelector("#folder-rescris") || {}).value || g.destinatie;
+          if (!confirm(`Conținutul folderului „${corp.folder}” se șterge și se înlocuiește. Continui?`)) return;
+        } else corp.discriminant = (f.el.querySelector("#discriminant") || {}).value || "";
+      }
+      try { const r = await post("grefier", corp); f.inchide();
+        gata(`✓ ${r.nr}: ${r.copiate} fișiere în „${r.folder}”${r.rescris ? " (rescris)" : ""}` + (r.erori.length ? "\n  " + r.erori.join("\n  ") : "")); }
+      catch (e) { toast(e.message, 5000); }
+    });
+    const grupAles = () => { const v = (f.el.querySelector("input[name=grup]:checked") || {}).value;
+      return plan.grupuri.find(g => g.cheie === v) || g0; };
+    const deseneaza = () => {
+      const g = grupAles();
+      $("#fisiere", f.el).innerHTML = g.fisiere.map(x => `<label class="optiune"><input type="checkbox" value="${esc(x.nume)}" checked>
+        <div><b>${esc(x.nume)}</b><div class="mic muted">${esc(x.creat)}</div></div></label>`).join("");
+      $("#dest", f.el).innerHTML = !g.destinatie_exista ? `<div class="mic muted">Se creează folderul „${esc(g.destinatie)}”.</div>` :
+        `<div class="titlu-sectiune">Folderul „${esc(g.destinatie)}” există deja</div>
+        <label class="optiune"><input type="radio" name="mod" value="rescriere" checked><div><b>Rescriere</b>
+          <div class="mic muted">Conținutul folderului e înlocuit cu fișierele trimise acum.</div>
+          ${plan.foldere_existente.length > 1 ? `<select id="folder-rescris" style="margin-top:6px">${plan.foldere_existente.map(x =>
+            `<option value="${esc(x.nume)}" ${x.nume === g.destinatie ? "selected" : ""}>${esc(x.nume)} (${x.fisiere.length} fișiere)</option>`).join("")}</select>` : ""}</div></label>
+        <label class="optiune"><input type="radio" name="mod" value="nou"><div><b>Folder nou</b>
+          <div class="mic muted">Un folder separat, cu un discriminant.</div>
+          <input type="text" id="discriminant" value="${esc(g.discriminant_implicit)}" placeholder="Discriminant (ex. IEM)" style="margin-top:6px"></div></label>`;
+    };
+    f.el.addEventListener("change", e => { if (e.target.name === "grup") deseneaza(); });
+    deseneaza();
+  });
+}
+
+// Arhivă ZIP: folderele grefier ale dosarelor, făcută pe calculator
+async function arhiva(numere) {
+  let plan; try { plan = await post("arhiva/plan", {numere}); } catch (e) { return toast(e.message, 5000); }
+  const cuAlegere = plan.dosare.filter(x => x.fara_sufix.length && x.cu_sufix.length);
+  const bune = plan.dosare.filter(x => !x.eroare);
+  const erori = plan.dosare.filter(x => x.eroare).map(x => x.eroare);
+  if (!bune.length) return foaie(`<h2>🗜️ Arhivă ZIP</h2><div class="card mic" style="white-space:pre-line">Nu a fost arhivat niciun folder.\n${esc(erori.join("\n"))}</div>`);
+  const f = foaie(`<h2>🗜️ Arhivă ZIP · ${bune.length} dosare</h2>
+    ${cuAlegere.length > 1 ? `<label class="optiune"><input type="checkbox" id="la-toate"><div>Aceeași alegere pentru toate dosarele</div></label>` : ""}
+    ${cuAlegere.map(x => `<div class="card" data-nr="${esc(x.nr)}"><b>${esc(x.nr)}</b>
+      <div class="mic muted">Fără sufix: ${esc(x.fara_sufix.join(", "))}<br>Cu sufix: ${esc(x.cu_sufix.join(", "))}</div>
+      <div class="chips">${[["fara","Fără sufix"],["cu","Cu sufix"],["toate","Toate"]].map(([v, t], i) =>
+        `<label class="chip"><input type="radio" name="a-${esc(x.nr)}" value="${v}" ${i ? "" : "checked"}> ${t}</label>`).join("")}</div></div>`).join("")}
+    ${bune.filter(x => !cuAlegere.includes(x)).map(x => `<div class="item mic"><b>${esc(x.nr)}</b>&nbsp;<span class="muted trunchiat">${esc([...x.fara_sufix, ...x.cu_sufix].join(", "))}</span></div>`).join("")}
+    ${erori.length ? `<div class="banda avertisment mic" style="white-space:pre-line">${esc(erori.join("\n"))}</div>` : ""}
+    <p class="mic muted">Arhiva se salvează pe calculator, în Master, cu numele propus de Ius Machina; apoi o poți descărca.</p>
+    <div class="butoane"><button class="btn sec" data-a="anuleaza">Anulează</button><button class="btn" data-a="fa">Fă arhiva</button></div>`,
+    async (a, f, b) => {
+      if (a === "anuleaza") return f.inchide();
+      if (a !== "fa") return;
+      const alegeri = {};
+      bune.forEach(x => alegeri[x.nr] = (f.el.querySelector(`input[name="a-${CSS.escape(x.nr)}"]:checked`) || {}).value || "toate");
+      b.disabled = true; b.textContent = "Se face…";
+      try { const r = await post("arhiva", {alegeri}); ARHIVE.unshift(r); f.inchide();
+        foaie(`<h2>✓ Arhiva a fost salvată</h2><div class="card mic"><b>${esc(r.nume)}</b> · ${r.foldere} foldere · ${marime(r.marime)}<br>
+          <span class="muted">${esc(r.cale)}</span>${r.erori.length ? `<div class="banda avertisment" style="white-space:pre-line;margin-top:8px">${esc(r.erori.join("\n"))}</div>` : ""}</div>
+          <div class="butoane"><a class="btn lat" href="/api/zip?id=${r.id}">⬇ Descarcă pe telefon</a></div>`);
+      } catch (e) { b.disabled = false; b.textContent = "Fă arhiva"; toast(e.message, 5000); }
+    });
+  f.el.addEventListener("change", e => {
+    if (!e.target.name || !e.target.name.startsWith("a-") || !(f.el.querySelector("#la-toate") || {}).checked) return;
+    f.el.querySelectorAll(`input[type=radio][value="${e.target.value}"]`).forEach(x => x.checked = true);
+  });
+}
+
+// ---------- Taxe și cauțiuni (ca Unelte → 🧮 Taxe și cauțiuni) ----------
+const aziIso = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const dataRo = iso => iso.split("-").reverse().join(".");
+const dataTaxe = () => citeste("taxe_data", "") || aziIso();
+const notaTaxe = () => citeste("taxe_nota", {capete: [], victima: false});
+let filtruTaxe = "", cerereTaxe = 0;
+
+function vTaxeRuta(fel, cheie) {
+  if (fel === "caz" && cheie) return vTaxaCaz(cheie);
+  if (fel === "nota") return vTaxeNota();
+  return vTaxe();
+}
+
+async function vTaxe() {
+  titlu("Taxe și cauțiuni");
+  const zi = dataTaxe(), tok = ++cerereTaxe, n = notaTaxe().capete.length;
+  C.innerHTML = `<div class="doua-coloane"><div>
+    <div class="card"><label class="camp"><span>Data cererii — se aplică forma legii în vigoare atunci</span>
+      <div class="rand"><input type="date" id="data-taxe" value="${esc(zi)}" max="${aziIso()}">
+      <button class="btn sec" id="azi-taxe">Azi</button></div></label>
+      <div id="forma" class="mic muted" style="margin-top:8px">Se citesc OUG 80/2013 și Codul de procedură civilă…</div></div>
+    </div><div>
+    <a class="item" href="#/taxe/nota"><span style="font-size:22px">🧾</span><div class="creste"><b>Nota de timbraj</b>
+      <div class="mic muted">${n ? n + (n === 1 ? " capăt" : " capete") : "Goală: adaugă capete din calcul"}</div></div><span>›</span></a>
+    <input type="search" id="filtru-taxe" placeholder="Caută: divorț, partaj, apel, ordonanță…" value="${esc(filtruTaxe)}">
+    </div></div>
+    <div id="lista-taxe"><div class="spinner"></div></div>`;
+  $("#data-taxe").onchange = e => { scrie("taxe_data", e.target.value === aziIso() ? "" : e.target.value); vTaxe(); };
+  $("#azi-taxe").onclick = () => { scrie("taxe_data", ""); vTaxe(); };
+  let d;
+  try { d = await api("taxe/cazuri?data=" + enc(zi)); }
+  catch (e) {
+    if (e.cod === 401) return eroare(e);
+    if (tok !== cerereTaxe || !$("#forma")) return;
+    $("#forma").innerHTML = `<span style="color:var(--danger)">✕ ${esc(e.message)}</span>`;
+    $("#lista-taxe").innerHTML = `<button class="btn" id="reincearca-taxe">Reîncearcă</button>`;
+    $("#reincearca-taxe").onclick = () => vTaxe();
+    return;
+  }
+  if (tok !== cerereTaxe || !$("#lista-taxe")) return;          // s-a plecat sau s-a schimbat data între timp
+  $("#forma").innerHTML = `OUG nr. 80/2013 — <b>${esc(d.forma)}</b>` +
+    (d.forma_cpc ? `<br>Codul de procedură civilă — <b>${esc(d.forma_cpc)}</b>`
+      : `<br><span style="color:var(--danger)">✕ Codul de procedură civilă nu s-a citit (${esc(d.problema_cpc)}): cauțiunile nu se pot calcula.</span>`) +
+    (d.refuzate ? `<br><span style="color:var(--warn)">⚠ ${d.refuzate} cazuri nu se pot calcula automat în această formă (estompate).</span>` : "");
+  const deseneaza = () => {
+    const t = simplu(filtruTaxe);
+    let h = "";
+    for (const g of d.grupe) {
+      const v = g.cazuri.filter(c => !t || simplu(c.eticheta + " " + c.temei + " " + g.nume).includes(t));
+      if (!v.length) continue;
+      h += `<div class="titlu-sectiune">${esc(g.nume)}</div><div class="grila">` + v.map(c =>
+        `<a class="item${c.problema ? " gri" : ""}" href="#/taxe/caz/${enc(c.cheie)}"><div class="creste"><div>${esc(c.eticheta)}</div>
+          <div class="mic muted">${esc(c.temei)}${c.fel === "cautiune" ? " · cauțiune" : ""}${c.problema ? " · ⚠ " + esc(c.problema) : ""}</div></div>
+          <span>›</span></a>`).join("") + `</div>`;
+    }
+    $("#lista-taxe").innerHTML = h || `<div class="gol">Niciun caz pentru „${esc(filtruTaxe)}”.</div>`;
+  };
+  $("#filtru-taxe").oninput = e => { filtruTaxe = e.target.value; deseneaza(); };
+  deseneaza();
+}
+
+async function vTaxaCaz(cheie) {
+  titlu("Calcul", true); spinner();
+  const zi = dataTaxe();
+  let caz; try { caz = await api(`taxe/caz?cheie=${enc(cheie)}&data=${enc(zi)}`); } catch (e) { return eroare(e); }
+  titlu(caz.eticheta, true);
+  const scrise = citeste("taxe_valori", {})[cheie] || {};
+  const camp = i => i.tip === "numar"
+    ? `<input type="number" name="${esc(i.cheie)}" min="1" step="1" inputmode="numeric" value="${esc(scrise[i.cheie] ?? (i.implicit || 1))}">`
+    : `<input type="text" name="${esc(i.cheie)}" inputmode="decimal" autocomplete="off" placeholder="ex. 12.000 sau 12.000,50"
+        value="${esc(scrise[i.cheie] ?? i.implicit ?? "")}">`;
+  C.innerHTML = `<div class="doua-coloane"><div>
+    <div class="card"><div class="mic muted">${esc(caz.grup)}</div><h2 style="margin:4px 0 2px">${esc(caz.eticheta)}</h2>
+      <div class="mic muted">Forma legii în vigoare la ${esc(dataRo(zi))} · <a href="#/taxe">schimbă data</a></div></div>
+    ${caz.problema ? `<div class="banda avertisment">⚠ ${esc(caz.problema)}</div>` : ""}
+    ${caz.intrari.length ? `<form id="intrari" class="card">${caz.intrari.map(i =>
+      `<label class="camp"><span>${esc(i.eticheta)}</span>${camp(i)}</label>`).join("")}</form>` : `<form id="intrari"></form>`}
+    <div class="card" id="rezultat"><div class="spinner" style="margin:10px auto"></div></div>
+    <div class="butoane">
+      <button class="btn" id="adauga-nota" disabled>➕ În nota de timbraj</button>
+      <button class="btn sec" id="copiaza-taxa" disabled>📋 Copiază</button>
+      <a class="btn sec lat" href="#/taxe/nota" id="spre-nota">🧾 Nota de timbraj</a></div>
+    </div><div>
+    <details open><summary>Textul legii</summary>${caz.lege.map(p => p.temei
+      ? `<div class="card mic"><b>${esc(p.temei)}</b> — ${esc(p.text)}</div>`
+      : `<p class="mic muted">${esc(p.text)}${p.url ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">pe portal</a>` : ""}</p>`).join("")}</details>
+    </div></div>`;
+  let ultim = null, temp = 0, tok = 0;
+  const valori = () => Object.fromEntries([...$("#intrari").elements].filter(x => x.name).map(x => [x.name, x.value.trim()]));
+  const spreNota = () => { const n = notaTaxe().capete.length; $("#spre-nota").textContent = "🧾 Nota de timbraj" + (n ? " · " + n : ""); };
+  const calcul = async () => {
+    const v = valori(), toate = citeste("taxe_valori", {});
+    toate[cheie] = v; scrie("taxe_valori", toate);
+    const t = ++tok; let r;
+    try { r = await post("taxe/calcul", {cheie, valori: v, data: zi}); }
+    catch (e) { if (e.cod === 401) return eroare(e); r = {eroare: e.message}; }
+    if (t !== tok || !$("#rezultat")) return;
+    ultim = r.eroare ? null : r;
+    const culoare = r.incomplet ? "var(--muted)" : r.eroare ? "var(--danger)" : r.fel === "cautiune" ? "var(--info)" : "var(--ok)";
+    $("#rezultat").innerHTML = r.eroare ? `<div style="color:${culoare}">${esc(r.eroare)}</div>`
+      : `<div class="suma" style="color:${culoare}">${r.fel === "cautiune" ? "Cauțiune: " : ""}${esc(r.suma)}</div>
+         <div class="pasi mic">${r.pasi.map(p => `<div>${esc(p)}</div>`).join("")}</div>
+         <div class="mic muted" style="margin-top:8px">${esc(r.forme)}.</div>`;
+    $("#copiaza-taxa").disabled = !ultim;
+    $("#adauga-nota").disabled = !ultim || r.plafon;
+    $("#adauga-nota").title = r.plafon ? "Plafonul nu e o sumă datorată: cuantumul îl fixează instanța." : "";
+  };
+  $("#intrari").oninput = () => { clearTimeout(temp); temp = setTimeout(calcul, 300); };
+  $("#intrari").onsubmit = e => { e.preventDefault(); clearTimeout(temp); calcul(); document.activeElement.blur(); };
+  $("#copiaza-taxa").onclick = () => ultim && copiaza(ultim.text);
+  $("#adauga-nota").onclick = () => {
+    if (!ultim) return;
+    const n = notaTaxe(); n.capete.push({cheie, eticheta: caz.eticheta, valori: valori()}); scrie("taxe_nota", n);
+    toast(`Adăugat în nota de timbraj (${n.capete.length} ${n.capete.length === 1 ? "capăt" : "capete"}).`); spreNota();
+  };
+  spreNota();
+  calcul();
+}
+
+async function vTaxeNota() {
+  titlu("Nota de timbraj", true);
+  const n = notaTaxe(), zi = dataTaxe();
+  if (!n.capete.length) {
+    C.innerHTML = `<div class="gol">Nota e goală. Alege un caz în <a href="#/taxe">🧮 Taxe</a>, calculează-l și apasă „În nota de timbraj”.</div>`;
+    return;
+  }
+  spinner();
+  let r;
+  try { r = await post("taxe/nota", {capete: n.capete.map(c => ({cheie: c.cheie, valori: c.valori})), victima: n.victima, data: zi}); }
+  catch (e) { return eroare(e); }
+  if (!location.hash.startsWith("#/taxe/nota")) return;
+  const rand = (c, i) => {
+    const x = r.randuri[i];
+    const suma = !x ? `<span style="color:var(--danger)">nu s-a putut calcula</span>`
+      : (x.fel === "cautiune" ? "cauțiune " : "") + (x.redus ? `${esc(x.calculat)} → <b>${esc(x.datorat)}</b>` : `<b>${esc(x.datorat)}</b>`);
+    return `<div class="item"><div class="creste"><div>${esc(c.eticheta)}</div><div class="mic">${suma}</div>
+      ${x && x.mentiune ? `<div class="mic" style="color:var(--warn)">${esc(x.mentiune)}</div>` : ""}</div>
+      <button class="btn sec" style="padding:6px 10px" data-scoate="${i}" aria-label="Scoate capătul">✕</button></div>`;
+  };
+  C.innerHTML = `<p class="mic muted" style="margin-top:0">Capetele aceleiași cereri (taxa se datorează pentru fiecare capăt), cu regulile
+    OUG 80/2013 despre cererile accesorii, scutite sau taxate o singură dată. Forma legii la ${esc(dataRo(zi))}.</p>
+    <div class="doua-coloane"><div>
+      <div class="grila" style="grid-template-columns:minmax(0,1fr)">${n.capete.map(rand).join("")}</div>
+      <label class="optiune"><input type="checkbox" id="victima" ${n.victima ? "checked" : ""}>
+        <div>Victimă a violenței în familie <div class="mic muted">Divorțul și partajul sunt scutite (art. 29 alin. (6)).</div></div></label>
+    </div><div>
+      <div class="card"><div class="suma" style="color:var(--ok)">Taxă de timbru: ${esc(r.total_taxe)}</div>
+        ${r.are_cautiuni ? `<div class="suma" style="color:var(--info);font-size:18px">Cauțiuni: ${esc(r.total_cautiuni)}</div>` : ""}</div>
+      ${r.avertismente.length ? `<div class="banda avertisment mic" style="white-space:pre-line">${esc(r.avertismente.map(a => "⚠ " + a).join("\n"))}</div>` : ""}
+      <div class="butoane"><button class="btn" id="copiaza-nota">📋 Copiază nota</button>
+        <a class="btn sec" href="#/taxe">➕ Alt capăt</a>
+        <button class="btn sec lat" id="goleste-nota">🗑️ Golește nota</button></div>
+    </div></div>`;
+  C.onclick = e => { const b = e.target.closest("[data-scoate]"); if (!b) return;
+    const m = notaTaxe(); m.capete.splice(+b.dataset.scoate, 1); scrie("taxe_nota", m); vTaxeNota(); };
+  $("#victima").onchange = e => { const m = notaTaxe(); m.victima = e.target.checked; scrie("taxe_nota", m); vTaxeNota(); };
+  $("#copiaza-nota").onclick = () => copiaza(r.text);
+  $("#goleste-nota").onclick = () => { if (confirm("Golești nota de timbraj?")) { scrie("taxe_nota", {capete: [], victima: false}); vTaxeNota(); } };
+}
+
+// ---------- pornirea ----------
+(async () => {
+  bulinaCos();
+  if (OFFLINE) return pornesteOffline();
+  // Prin HTTPS (Tailscale) pagina devine aplicație instalabilă; pe Wi-Fi (HTTP) browserul nu permite service worker
+  if (location.protocol === "https:" && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+  try { const i = await api("info"); STARI = i.stari; router(); }
+  catch (e) { eroare(e); }
+})();
+</script>
+</body>
+</html>

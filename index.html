@@ -268,18 +268,335 @@ async function apiOffline(cale, opt) {
   return r.ok;
 }
 function meniuOffline() {
+  const od = tokenSalvat(), master = citeste("od_master", null);
   foaie(`<h2>Mercurius fără calculator</h2>
   <div class="card mic">Calculul se face pe telefon, cu același cod ca în Ius Machina, și merge și fără internet după
   prima deschidere. Textele legii: ${textePachet ? "pachetul din " + esc(textePachet.replace("T", " ")) : "se încarcă la primul calcul"}.</div>
-  <div class="butoane"><button class="btn sec lat" data-a="reincarca">↻ Reîncarcă</button></div>`, (a, f) => {
+  <div class="card mic">OneDrive: ${od ? "conectat" : "neconectat"}${master ? " · Master: " + esc(master.cale) : ""}.
+  Fișierele merg direct între telefon și OneDrive.</div>
+  <div class="butoane"><button class="btn sec lat" data-a="reincarca">↻ Reîncarcă</button>
+  ${od ? '<button class="btn rosu lat" data-a="iesire-od">Deconectează OneDrive</button>' : ""}</div>`, (a, f) => {
     if (a === "reincarca") { f.inchide(); location.reload(); }
+    if (a === "iesire-od") { try { localStorage.removeItem("od_token"); } catch (e) {} f.inchide(); toast("OneDrive deconectat."); router(); }
   });
 }
-function pornesteOffline() {
-  document.querySelectorAll("nav a").forEach(a => { a.hidden = a.dataset.s !== "taxe"; });
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+function vederiOffline() { return {taxe: vTaxeRuta, arhiva: vArhivaRuta}; }
+async function pornesteOffline() {
+  const taxe = document.querySelector('nav a[data-s="taxe"]');
+  document.querySelectorAll("nav a").forEach(a => { a.hidden = a !== taxe; });
+  const ar = document.createElement("a");
+  ar.href = "#/arhiva"; ar.dataset.s = "arhiva"; ar.innerHTML = "<span>🗜️</span>Arhivă";
+  taxe.after(ar);
+  if ("serviceWorker" in navigator) {
+    // O versiune nouă a site-ului preia pagina: o reîncarcă o dată, ca să nu rămână versiunea veche până data viitoare
+    if (navigator.serviceWorker.controller)
+      navigator.serviceWorker.addEventListener("controllerchange", () => location.reload(), {once: true});
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  await revenireDeLaMicrosoft();
   router();
   pornestePython().catch(() => {});
+}
+async function py(op, args) {                  // regulile arhivei, din Python (trimitere_instanta, arhiva_dosare)
+  const m = await pornestePython();
+  const r = JSON.parse(m.arhiva(op, JSON.stringify(args)));
+  if (r.ok === undefined) throw new Eroare(r.eroare, r.cod);
+  return r.ok;
+}
+
+// ---------- ZIP, fără biblioteci: deflate cu CompressionStream (sau stocat, dacă nu câștigă nimic) ----------
+const CRC_TABEL = (() => { const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_TABEL[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function comprima(b) {
+  if (typeof CompressionStream === "undefined") return null;
+  try { return new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer()); }
+  catch (e) { return null; }
+}
+class ArhivaZip {
+  constructor() { this.parti = []; this.central = []; this.pozitie = 0; this.n = 0; }
+  async adauga(cale, date, cand) {
+    const d = cand instanceof Date && !isNaN(cand) && cand.getFullYear() >= 1980 ? cand : new Date();
+    const timp = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const zi = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const nume = new TextEncoder().encode(cale), crc = crc32(date), comprimat = await comprima(date);
+    const deflate = !!comprimat && comprimat.length < date.length, corp = deflate ? comprimat : date;
+    if (this.pozitie + 30 + nume.length + corp.length > 0xFFFFFFFE || this.n >= 65535)
+      throw new Eroare("Arhiva ar trece de 4 GB sau de 65.535 de fișiere; fă mai multe arhive.", 413);
+    const l = new DataView(new ArrayBuffer(30));
+    l.setUint32(0, 0x04034b50, true); l.setUint16(4, 20, true); l.setUint16(6, 0x0800, true);
+    l.setUint16(8, deflate ? 8 : 0, true); l.setUint16(10, timp, true); l.setUint16(12, zi, true);
+    l.setUint32(14, crc, true); l.setUint32(18, corp.length, true); l.setUint32(22, date.length, true);
+    l.setUint16(26, nume.length, true);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint16(10, deflate ? 8 : 0, true); c.setUint16(12, timp, true); c.setUint16(14, zi, true);
+    c.setUint32(16, crc, true); c.setUint32(20, corp.length, true); c.setUint32(24, date.length, true);
+    c.setUint16(28, nume.length, true); c.setUint32(42, this.pozitie, true);
+    this.parti.push(l, nume, corp); this.central.push(c, nume);
+    this.pozitie += 30 + nume.length + corp.length; this.n++;
+  }
+  blob() {
+    const marimeCentral = this.central.reduce((s, x) => s + x.byteLength, 0);
+    const sf = new DataView(new ArrayBuffer(22));
+    sf.setUint32(0, 0x06054b50, true); sf.setUint16(8, this.n, true); sf.setUint16(10, this.n, true);
+    sf.setUint32(12, marimeCentral, true); sf.setUint32(16, this.pozitie, true);
+    return new Blob([...this.parti, ...this.central, sf], {type: "application/zip"});
+  }
+}
+
+// ---------- OneDrive (Microsoft Graph): autentificare cu PKCE, fără biblioteci și fără server ----------
+const CLIENT_ID = "6f942612-4802-47ce-a21e-bf29bec365cc";
+const LOGIN = "https://login.microsoftonline.com/consumers/oauth2/v2.0/";
+const SCOPURI = "Files.ReadWrite offline_access";
+const GRAPH = "https://graph.microsoft.com/v1.0";
+const ADRESA = new URL(".", location.href).href;      // exact adresa de redirecționare înregistrată la Microsoft
+const b64url = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const aleator = n => b64url(crypto.getRandomValues(new Uint8Array(n)));
+const tokenSalvat = () => citeste("od_token", null);
+async function conecteazaOneDrive() {
+  const v = aleator(48), stare = aleator(16);
+  const provocare = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v)));
+  sessionStorage.setItem("od_pkce", JSON.stringify({v, stare, inapoi: location.hash || "#/arhiva"}));
+  location.href = LOGIN + "authorize?" + new URLSearchParams({client_id: CLIENT_ID, response_type: "code",
+    redirect_uri: ADRESA, scope: SCOPURI, code_challenge: provocare, code_challenge_method: "S256", state: stare,
+    response_mode: "query", prompt: "select_account"});
+}
+async function cerereToken(campuri) {
+  let r, d = {};
+  try {
+    r = await fetch(LOGIN + "token", {method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: new URLSearchParams({client_id: CLIENT_ID, scope: SCOPURI, ...campuri})});
+    d = await r.json().catch(() => ({}));
+  } catch (e) { throw new Eroare("Microsoft nu răspunde. E internet pe telefon?", 0); }
+  if (!r.ok || !d.access_token) throw new Eroare("Autentificarea Microsoft a eșuat" + (d.error ? " (" + d.error + ")" : "") + ".", 401);
+  scrie("od_token", {acces: d.access_token, reinnoire: d.refresh_token || "", expira: Date.now() + (d.expires_in || 3600) * 1000});
+}
+async function revenireDeLaMicrosoft() {                // ?code=… (sau ?error=…) după pagina Microsoft
+  const p = new URLSearchParams(location.search);
+  if (!p.has("code") && !p.has("error")) return;
+  let s = {}; try { s = JSON.parse(sessionStorage.getItem("od_pkce") || "{}"); } catch (e) {}
+  sessionStorage.removeItem("od_pkce");
+  history.replaceState(null, "", ADRESA + (s.inapoi || "#/arhiva"));
+  if (p.has("error")) return toast("Microsoft: " + (p.get("error_description") || p.get("error")).split("\n")[0], 7000);
+  if (!s.v || p.get("state") !== s.stare) return toast("Autentificarea nu s-a potrivit; încearcă din nou.", 5000);
+  try { await cerereToken({grant_type: "authorization_code", code: p.get("code"), redirect_uri: ADRESA, code_verifier: s.v}); toast("OneDrive conectat."); }
+  catch (e) { toast(e.message, 6000); }
+}
+async function tokenValid() {
+  const t = tokenSalvat();
+  if (!t) throw new Eroare("Conectează OneDrive.", 401);
+  if (Date.now() < t.expira - 120000) return t.acces;
+  if (!t.reinnoire) { localStorage.removeItem("od_token"); throw new Eroare("Conectează OneDrive din nou.", 401); }
+  try { await cerereToken({grant_type: "refresh_token", refresh_token: t.reinnoire}); }
+  catch (e) { if (e.cod === 0) throw e; localStorage.removeItem("od_token"); throw new Eroare("Conectează OneDrive din nou (autentificarea a expirat).", 401); }
+  return tokenSalvat().acces;
+}
+async function graph(cale, opt = {}) {
+  const fa = async () => fetch(cale.startsWith("https://") ? cale : GRAPH + cale,
+    {...opt, headers: {...(opt.headers || {}), Authorization: "Bearer " + await tokenValid()}});
+  let r;
+  try {
+    r = await fa();
+    if (r.status === 401) { const t = tokenSalvat(); if (t) { t.expira = 0; scrie("od_token", t); } r = await fa(); }
+  } catch (e) { if (e instanceof Eroare) throw e; throw new Eroare("OneDrive nu răspunde. E internet pe telefon?", 0); }
+  if (r.status === 401) { localStorage.removeItem("od_token"); throw new Eroare("Conectează OneDrive din nou.", 401); }
+  const d = r.status === 204 ? {} : await r.json().catch(() => ({}));
+  if (!r.ok) throw new Eroare((d.error && d.error.message) || ("OneDrive: eroare " + r.status), r.status);
+  return d;
+}
+async function copii(idFolder) {                       // tot conținutul unui folder (cu paginare)
+  let url = `/me/drive/items/${enc(idFolder)}/children?$top=999`, toate = [];
+  while (url) { const d = await graph(url); toate = toate.concat(d.value || []); url = d["@odata.nextLink"] || ""; }
+  return toate;
+}
+async function folderDupaCale(idParinte, nume) {
+  try { const d = await graph(`/me/drive/items/${enc(idParinte)}:/${enc(nume)}`); return d.folder ? d : null; }
+  catch (e) { if (e.cod === 404) return null; throw e; }
+}
+async function incarcaInOneDrive(idFolder, fisier, progres) {   // nu suprascrie: un nume luat devine „nume 1.zip”
+  const cale = `/me/drive/items/${enc(idFolder)}:/${enc(fisier.name)}:`;
+  if (fisier.size <= 4 * 1024 * 1024)
+    return graph(cale + "/content?@microsoft.graph.conflictBehavior=rename", {method: "PUT", body: fisier, headers: {"Content-Type": "application/zip"}});
+  const s = await graph(cale + "/createUploadSession", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({item: {"@microsoft.graph.conflictBehavior": "rename"}})});
+  const BUCATA = 320 * 1024 * 20;                     // multiplu de 320 KiB, cum cere OneDrive
+  let r;
+  for (let i = 0; i < fisier.size; i += BUCATA) {
+    const sf = Math.min(i + BUCATA, fisier.size);
+    try { r = await fetch(s.uploadUrl, {method: "PUT", headers: {"Content-Range": `bytes ${i}-${sf - 1}/${fisier.size}`}, body: fisier.slice(i, sf)}); }
+    catch (e) { throw new Eroare("Încărcarea în OneDrive s-a întrerupt (internet?).", 0); }
+    if (!r.ok) throw new Eroare("Încărcarea în OneDrive s-a oprit (eroare " + r.status + ").", r.status);
+    if (progres) progres(sf / fisier.size);
+  }
+  return r.json();
+}
+function eroareOD(e, unde) {
+  if (e.cod === 401) { try { localStorage.removeItem("od_token"); } catch (x) {} return vArhiva(); }
+  (unde || C).innerHTML = `<div class="card"><h2>⚠️ ${esc(e.message)}</h2><button class="btn" id="reincearca-od">Reîncearcă</button></div>`;
+  $("#reincearca-od").onclick = () => router();
+}
+
+// ---------- 🗜️ Arhivă: folderele grefier ale dosarelor, din OneDrive, într-un ZIP (ca Trimite → Arhivă ZIP) ----------
+let zipFacut = null;
+function vArhivaRuta(fel, id) { return fel === "alege" ? vAlegeMaster(id) : vArhiva(); }
+function vArhiva() {
+  titlu("Arhivă ZIP");
+  if (!tokenSalvat()) {
+    C.innerHTML = `<div class="card"><h2>☁️ Conectează OneDrive</h2>
+      <p class="mic muted">Mercurius citește folderele dosarelor din OneDrive-ul tău, face arhiva pe telefon și o trimite
+      sau o pune înapoi în Master. Fișierele merg direct între telefon și OneDrive; nu trec prin alt server.</p>
+      <button class="btn lat" id="conecteaza">Conectează OneDrive</button></div>`;
+    $("#conecteaza").onclick = () => conecteazaOneDrive();
+    return;
+  }
+  const master = citeste("od_master", null);
+  if (!master) {
+    C.innerHTML = `<div class="card"><h2>📁 Alege folderul Master</h2><p class="mic muted">O singură dată: folderul
+      Master din OneDrive (cel cu folderele dosarelor). Arhiva e folderul „Arhiva” de lângă el.</p>
+      <a class="btn lat" href="#/arhiva/alege">Alege folderul</a></div>`;
+    return;
+  }
+  C.innerHTML = `<div class="card mic muted">Master: <b>${esc(master.cale)}</b> · <a href="#/arhiva/alege">schimbă</a></div>
+    <div class="card"><label>Dosarele, câte unul pe rând
+      <textarea id="numere-arhiva" rows="4" placeholder="100/284/2026" autocapitalize="off" spellcheck="false">${esc(citeste("arhiva_numere", []).join("\n"))}</textarea></label>
+      <div class="butoane"><button class="btn lat" id="pregateste">🗜️ Pregătește arhiva</button></div></div>
+    <div id="plan-arhiva"></div>`;
+  $("#numere-arhiva").oninput = e => scrie("arhiva_numere", e.target.value.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean));
+  $("#pregateste").onclick = () => pregatesteArhiva(master);
+  if (zipFacut) arataZip(zipFacut.fisier, zipFacut.erori, zipFacut.n);
+}
+async function vAlegeMaster(id) {
+  titlu("Folderul Master", true);
+  C.innerHTML = '<div class="spinner"></div>';
+  let folder, foldere;
+  try {
+    folder = await graph(id ? `/me/drive/items/${enc(id)}` : "/me/drive/root");
+    foldere = (await copii(folder.id)).filter(x => x.folder).sort((a, b) => a.name.localeCompare(b.name, "ro"));
+  } catch (e) { return eroareOD(e); }
+  const parinte = folder.parentReference || {};
+  const cale = parinte.path ? decodeURIComponent(parinte.path.replace(/^\/drive\/root:?/, "")) + "/" + folder.name : "OneDrive";
+  let filtru = "";
+  C.innerHTML = `<div class="card"><div class="mic muted">Ești în</div><b>${esc(cale)}</b>
+      ${parinte.path ? '<div class="butoane"><button class="btn lat" id="e-master">✓ Acesta e folderul Master</button></div>' : ""}</div>
+    ${foldere.length > 12 ? '<input type="search" id="filtru-foldere" placeholder="Caută folderul">' : ""}
+    <div id="foldere"></div>`;
+  const deseneaza = () => {
+    const t = simplu(filtru);
+    $("#foldere").innerHTML = foldere.filter(f => !t || simplu(f.name).includes(t)).map(f =>
+      `<a class="item" href="#/arhiva/alege/${enc(f.id)}"><span style="font-size:20px">📁</span><div class="creste">${esc(f.name)}</div><span class="muted">›</span></a>`).join("")
+      || '<div class="gol">Niciun subfolder.</div>';
+  };
+  deseneaza();
+  if ($("#filtru-foldere")) $("#filtru-foldere").oninput = e => { filtru = e.target.value; deseneaza(); };
+  if ($("#e-master")) $("#e-master").onclick = () => {
+    scrie("od_master", {id: folder.id, nume: folder.name, cale, parinte: parinte.id || ""});
+    zipFacut = null; location.hash = "#/arhiva";
+  };
+}
+async function pregatesteArhiva(master) {
+  const texte = citeste("arhiva_numere", []);
+  if (!texte.length) return toast("Scrie numărul cel puțin al unui dosar.");
+  const P = $("#plan-arhiva"); zipFacut = null;
+  P.innerHTML = '<div class="spinner"></div>';
+  const plan = [];
+  try {
+    const dupaNume = l => new Map(l.filter(x => x.folder).map(x => [x.name.toLowerCase(), x]));
+    const M = dupaNume(await copii(master.id));
+    let A = null;
+    for (const text of texte) {
+      let d;
+      try { d = await py("dosar", {text}); } catch (e) { plan.push({eroare: e.message}); continue; }
+      let gasit = d.foldere.map(n => M.get(n.toLowerCase())).find(Boolean);
+      if (!gasit) {
+        if (A === null) { const a = master.parinte ? await folderDupaCale(master.parinte, d.arhiva) : null; A = dupaNume(a ? await copii(a.id) : []); }
+        gasit = d.foldere.map(n => A.get(n.toLowerCase())).find(Boolean);
+      }
+      if (!gasit) { plan.push({eroare: `${d.nr}: Nu are folder în Master sau în Arhiva.`}); continue; }
+      const sub = (await copii(gasit.id)).filter(x => x.folder);
+      const g = await py("grefier", {nr: d.nr, subfoldere: sub.map(x => x.name)});
+      if (!g.fara.length && !g.cu.length) { plan.push({eroare: `${d.nr}: Nu s-a găsit niciun folder grefier.`}); continue; }
+      plan.push({nr: d.nr, fara: g.fara, cu: g.cu, iduri: Object.fromEntries(sub.map(x => [x.name, x.id]))});
+    }
+  } catch (e) { return eroareOD(e, P); }
+  if (!$("#plan-arhiva")) return;
+  const bune = plan.filter(p => !p.eroare);
+  P.innerHTML = plan.filter(p => p.eroare).map(p => `<div class="banda avertisment">${esc(p.eroare)}</div>`).join("") +
+    bune.map((p, i) => `<div class="card"><b>${esc(p.nr)}</b><div class="mic muted">${esc([...p.fara, ...p.cu].join(", "))}</div>
+      ${p.fara.length && p.cu.length ? `<div class="rand" style="flex-wrap:wrap;margin-top:8px">
+        <label><input type="radio" name="alegere-${i}" value="fara"> fără sufix</label>
+        <label><input type="radio" name="alegere-${i}" value="cu"> cu sufix</label>
+        <label><input type="radio" name="alegere-${i}" value="toate"> toate</label></div>` : ""}</div>`).join("") +
+    (bune.length ? '<div class="butoane"><button class="btn lat" id="fa-zip">🗜️ Fă arhiva</button></div>' : "");
+  if (bune.length) $("#fa-zip").onclick = () => faArhiva(bune, P);
+}
+async function faArhiva(plan, P) {
+  const surse = [];
+  try {
+    for (const [i, p] of plan.entries()) {
+      let alegere = null;
+      if (p.fara.length && p.cu.length) {
+        const ales = document.querySelector(`input[name="alegere-${i}"]:checked`);
+        if (!ales) return toast(`${p.nr}: alege folderele fără sufix, cu sufix sau toate.`);
+        alegere = ales.value;
+      }
+      for (const f of await py("alese", {fara: p.fara, cu: p.cu, alegere})) surse.push({nr: p.nr, folder: f, id: p.iduri[f]});
+    }
+    const [radacini, nume] = await Promise.all([py("radacini", {foldere: surse.map(s => s.folder)}),
+      py("nume", {surse, acum: aziIso() + "T" + new Date().toTimeString().slice(0, 8)})]);
+    P.innerHTML = '<div class="card"><div id="progres-zip">Caut fișierele…</div><div class="spinner"></div></div>';
+    const fisiere = [], erori = [];
+    const aduna = async (id, prefix) => {
+      for (const x of await copii(id)) {
+        if (x.folder) await aduna(x.id, prefix + "/" + x.name);
+        else if (x.file) fisiere.push({nume: x.name, cale: prefix + "/" + x.name, id: x.id, url: x["@microsoft.graph.downloadUrl"],
+          marime: x.size || 0, cand: new Date(x.lastModifiedDateTime || Date.now())});
+      }
+    };
+    for (const [i, s] of surse.entries()) {
+      try { await aduna(s.id, radacini[i]); } catch (e) { if (e.cod === 401) throw e; erori.push(`${s.nr}: Eroare arhivare ${s.folder} (${e.message})`); }
+    }
+    const intra = await py("fisiere", {nume: fisiere.map(f => f.nume)});
+    const deLuat = fisiere.filter((f, i) => intra[i]);
+    const total = deLuat.reduce((s, f) => s + f.marime, 0);
+    const zip = new ArhivaZip();
+    let luat = 0;
+    for (const [i, f] of deLuat.entries()) {
+      const pr = $("#progres-zip");
+      if (pr) pr.textContent = `Descarc ${i + 1} din ${deLuat.length} · ${marime(luat)} din ${marime(total)}`;
+      let r;
+      try {
+        r = f.url ? await fetch(f.url) : await fetch(GRAPH + `/me/drive/items/${enc(f.id)}/content`, {headers: {Authorization: "Bearer " + await tokenValid()}});
+        if (!r.ok) throw new Error("eroare " + r.status);
+        await zip.adauga(f.cale, new Uint8Array(await r.arrayBuffer()), f.cand);
+      } catch (e) { if (e instanceof Eroare) throw e; erori.push(`${f.cale}: nu s-a descărcat (${e.message})`); }
+      luat += f.marime;
+    }
+    if (!zip.n) throw new Eroare("Nu a fost arhivat niciun fișier.\n" + erori.join("\n"), 404);
+    zipFacut = {fisier: new File([zip.blob()], nume, {type: "application/zip"}), erori, n: zip.n};
+    arataZip(zipFacut.fisier, erori, zip.n);
+  } catch (e) { return eroareOD(e, P); }
+}
+function arataZip(fisier, erori, n) {
+  const P = $("#plan-arhiva"); if (!P) return;
+  const poateTrimite = navigator.canShare && navigator.canShare({files: [fisier]});
+  P.innerHTML = `<div class="card"><h2>✅ ${esc(fisier.name)}</h2><div class="mic muted">${n} fișiere · ${marime(fisier.size)}</div>
+    ${erori.length ? `<div class="banda avertisment" style="white-space:pre-line;margin-top:8px">${esc(erori.join("\n"))}</div>` : ""}
+    <div class="butoane">${poateTrimite ? '<button class="btn lat" id="trimite-zip">📤 Trimite (e-mail, mesaj…)</button>' : ""}
+    <button class="btn sec lat" id="salveaza-zip">☁️ Pune în Master (OneDrive)</button>
+    <a class="btn sec lat" id="descarca-zip" download="${esc(fisier.name)}">⬇ Descarcă pe telefon</a></div></div>`;
+  const url = URL.createObjectURL(fisier);
+  $("#descarca-zip").href = url;
+  if (poateTrimite) $("#trimite-zip").onclick = () => navigator.share({files: [fisier], title: fisier.name}).catch(e => {
+    if (e.name !== "AbortError") toast("Nu s-a putut trimite: " + e.message, 5000); });
+  $("#salveaza-zip").onclick = async e => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "☁️ Se încarcă…";
+    try {
+      const r = await incarcaInOneDrive(citeste("od_master", {}).id, fisier, p => { b.textContent = `☁️ Se încarcă… ${Math.round(p * 100)}%`; });
+      b.textContent = "✓ În Master: " + (r.name || fisier.name);
+    } catch (x) { b.disabled = false; b.textContent = "☁️ Pune în Master (OneDrive)"; toast(x.message, 6000); }
+  };
 }
 
 // ---------- cadrul ----------
@@ -323,7 +640,7 @@ function router() {
   C.onclick = null;
   document.querySelectorAll(".foaie-fundal").forEach(x => x.remove());
   bulinaCos();
-  const vederi = OFFLINE ? {taxe: vTaxeRuta} : {sesiuni: vSesiuni, sesiune: vSesiune, cauta: vCauta, dosar: vDosar,
+  const vederi = OFFLINE ? vederiOffline() : {sesiuni: vSesiuni, sesiune: vSesiune, cauta: vCauta, dosar: vDosar,
     doc: vDoc, trimite: vTrimite, taxe: vTaxeRuta};
   (vederi[sectiune] || (OFFLINE ? vTaxeRuta : vSesiuni))(...arg);
 }
